@@ -14,6 +14,7 @@ def init_q(s, a, type="zeros"):
     elif type == "zeros":
         return np.zeros((s, a))
 
+
 def epsilon_greedy(Q, epsilon, n_actions, s, train=False):
     """
     @param Q Q values state x action -> value
@@ -21,7 +22,7 @@ def epsilon_greedy(Q, epsilon, n_actions, s, train=False):
     @param s number of states
     @param train if true then no random actions selected
     """
-    if train or np.random.rand() < epsilon: #rand() random flotante 0-1
+    if train or np.random.rand() < epsilon:  # rand() random flotante 0-1
         action = np.argmax(Q[s, :])
     else:
         action = np.random.randint(0, n_actions)
@@ -39,24 +40,22 @@ class Qagent:
         self.n_states = n_states
         self.Q = init_q(n_states, n_actions, type="ones")
 
-    def take_action(self,s,first_state):
+    def take_action(self, s, first_state):
         if first_state:
-            action = epsilon_greedy(self.Q,self.epsilon,self.n_actions,s,False)
+            action = epsilon_greedy(self.Q, self.epsilon, self.n_actions, s, False)
         else:
-            s_=s
+            s_ = s
             action = np.argmax(self.Q[s_, :])
         return action
 
-    def updateQ(self,reward,s,a,s_,a_,end_sate):
-        Q=self.Q
+    def updateQ(self, reward, s, a, s_, a_, end_sate):
+        Q = self.Q
         alpha = self.alpha
         gamma = self.gamma
-    
+
         if end_sate:
             print("*** Terminal state")
             Q[s, a] += alpha * (reward - Q[s, a])
 
         else:
             Q[s, a] += alpha * (reward + (gamma * Q[s_, a_]) - Q[s, a])
-
-

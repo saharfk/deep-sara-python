@@ -404,7 +404,7 @@ def update_resources(substrate, nslr, kill):
         for i in range(len(path) - 1):
             try:
                 l = next(l for l in links if ((l["source"] == path[i] and l["target"] == path[i + 1]) or (
-                            l["source"] == path[i + 1] and l["target"] == path[i])))
+                        l["source"] == path[i + 1] and l["target"] == path[i])))
                 if kill:
                     l["bw"] += vlink["bw"]
                     substrate.graph["bw"] += vlink["bw"]

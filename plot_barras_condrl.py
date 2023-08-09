@@ -1,39 +1,55 @@
 import matplotlib
+
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
 import csv
 import math
 import numpy as np
 
+patterns = ["/", "\\", "|", "-", "+", "x", "o", "O", ".", "*"]
 
-
-patterns = [ "/" , "\\" , "|" , "-" , "+" , "x", "o", "O", ".", "*" ]
-
-pos = [0,2,4,6,9,10,11,12,13,14,15,16,17]
-arrival_rates = [1,3,5,7,10,15,20,25,30,40,60,80,100] #para las etiquetas
+pos = [0, 2, 4, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+arrival_rates = [1, 3, 5, 7, 10, 15, 20, 25, 30, 40, 60, 80, 100]  # para las etiquetas
 
 #########################
 topology = "16BA"
 
-#profit_dsara = [0.068271,0.16950,0.26464,0.36252,0.45892,0.51207,0.53310,0.53217,0.52476,0.53015,0.52485,0.49647,0.51091] #prioritizerv6
-profit_dsara = [0.07,0.19,0.31,0.3952,0.4892,0.5167,0.53010, 0.54817,0.557,0.56115,0.5625,0.563,0.563] #hibrido
-err_profit_dsara = [0.000716,0.001272,0.001434,0.00176,0.00223,0.002682,0.00254,0.002432,0.002635,0.00347,0.003759,0.00410,0.00428]         
-profit_sara = [0.075,0.192,0.3129,0.393,0.4779, 0.49607, 0.5077, 0.5188, 0.5297, 0.536, 0.545,0.544,0.544]
-err_profit_sara = [0.0043, 0.0047, 0.0040, 0.0027,0.0030, 0.0031, 0.0032, 0.0043, 0.0047, 0.004, 0.0027,0.004, 0.0027]         
-profit_nr = [0.0807,0.2012,0.3179,0.375, 0.4165154, 0.4266461, 0.4470104, 0.4506, 0.46241, 0.47052, 0.475,0.4768,0.478]
-err_profit_nr = [0.0031690472076186696, 0.002843247775231808, 0.003190763850770548, 0.002226630500389075, 0.002686611239071951, 0.0028752583528745936, 0.0031245861178723668, 0.0031690472076186696, 0.002843247775231808, 0.003190763850770548, 0.002226630500389075,0.00402, 0.002749]
-profit_aar = [0.08077682,0.19977,0.30385,0.36631, 0.3809, 0.3950, 0.4049, 0.4164, 0.419, 0.4303, 0.437,0.4388,0.4415]
-err_profit_aar = [0.0031525495312874972, 0.003067770034218551, 0.002611055466668176, 0.002027246686195222, 0.0025567283511299106, 0.0028131901836234144, 0.0027954886785447326, 0.0031525495312874972, 0.003067770034218551, 0.002611055466668176, 0.0020272,0.00402, 0.002749]
+# profit_dsara = [0.068271,0.16950,0.26464,0.36252,0.45892,0.51207,0.53310,0.53217,0.52476,0.53015,0.52485,0.49647,0.51091] #prioritizerv6
+profit_dsara = [0.07, 0.19, 0.31, 0.3952, 0.4892, 0.5167, 0.53010, 0.54817, 0.557, 0.56115, 0.5625, 0.563,
+                0.563]  # hibrido
+err_profit_dsara = [0.000716, 0.001272, 0.001434, 0.00176, 0.00223, 0.002682, 0.00254, 0.002432, 0.002635, 0.00347,
+                    0.003759, 0.00410, 0.00428]
+profit_sara = [0.075, 0.192, 0.3129, 0.393, 0.4779, 0.49607, 0.5077, 0.5188, 0.5297, 0.536, 0.545, 0.544, 0.544]
+err_profit_sara = [0.0043, 0.0047, 0.0040, 0.0027, 0.0030, 0.0031, 0.0032, 0.0043, 0.0047, 0.004, 0.0027, 0.004, 0.0027]
+profit_nr = [0.0807, 0.2012, 0.3179, 0.375, 0.4165154, 0.4266461, 0.4470104, 0.4506, 0.46241, 0.47052, 0.475, 0.4768,
+             0.478]
+err_profit_nr = [0.0031690472076186696, 0.002843247775231808, 0.003190763850770548, 0.002226630500389075,
+                 0.002686611239071951, 0.0028752583528745936, 0.0031245861178723668, 0.0031690472076186696,
+                 0.002843247775231808, 0.003190763850770548, 0.002226630500389075, 0.00402, 0.002749]
+profit_aar = [0.08077682, 0.19977, 0.30385, 0.36631, 0.3809, 0.3950, 0.4049, 0.4164, 0.419, 0.4303, 0.437, 0.4388,
+              0.4415]
+err_profit_aar = [0.0031525495312874972, 0.003067770034218551, 0.002611055466668176, 0.002027246686195222,
+                  0.0025567283511299106, 0.0028131901836234144, 0.0027954886785447326, 0.0031525495312874972,
+                  0.003067770034218551, 0.002611055466668176, 0.0020272, 0.00402, 0.002749]
 
-#acpt_rate_dsara = [0.7412,0.7294,0.7025,0.6990,0.5383,0.3468,0.2476,0.1904,0.1526,0.1113,0.0716,0.0529,0.0428] #prioritizerv6
-acpt_rate_dsara = [0.9741,0.9394,0.935,0.83990,0.60538,0.4068,0.33,0.27904,0.24526,0.20113,0.1716,0.1099,0.0819] #hibrido
-err_acptrate_dsara = [0.0011,0.002,0.0024,0.0052,0.0049,0.0033,0.0027,0.0018,0.0014,0.0009,0.0005,0.0003,0.0002] #prioritizerv6
-acpt_rate_sara = [0.974, 0.945, 0.9395, 0.8385, 0.6030, 0.4023, 0.328, 0.277, 0.2456, 0.2062, 0.170,0.107,0.0801]
-err_acptrate_sara = [0.0008922800054, 0.000783891420, 0.0005280157982450683, 0.00025514639468373425, 0.004101290567621489, 0.0022332414518280324, 0.0012786731817062908, 0.0008922800054337467, 0.0007838914206538084, 0.0005280157982450683, 0.00025514639468373425,0.0012, 0.001]
-acpt_rate_nr = [0.9960724, 0.98021,0.95910,0.8110, 0.598, 0.4008, 0.3167, 0.2702, 0.239, 0.203, 0.168,0.1016,0.0803]
-err_acptrate_nr = [0.0007795876424107773, 0.00061797360, 0.0003614507363258345, 0.00024294588090333733, 0.00409504618409599, 0.0018201023693472046, 0.001091101542655223, 0.0007795876424107773, 0.0006179736073683946, 0.0003614507363258345, 0.00024294588090333733,0.00402, 0.002749]
-acpt_rate_aar = [0.99604,0.9804,0.9313,0.7749, 0.549596, 0.3542, 0.26818, 0.2198, 0.1997, 0.1529, 0.1183,0.0903,0.0601]
-err_acptrate_aar = [0.000819, 0.000628, 0.0003775218043450037, 0.0002445211572782064, 0.0045900125211015, 0.0019046415853732118, 0.001042075335326106, 0.0008198186747819495, 0.0006280366025132104, 0.0003775218043450037, 0.0002445211572782064,0.001402, 0.002749]
+# acpt_rate_dsara = [0.7412,0.7294,0.7025,0.6990,0.5383,0.3468,0.2476,0.1904,0.1526,0.1113,0.0716,0.0529,0.0428] #prioritizerv6
+acpt_rate_dsara = [0.9741, 0.9394, 0.935, 0.83990, 0.60538, 0.4068, 0.33, 0.27904, 0.24526, 0.20113, 0.1716, 0.1099,
+                   0.0819]  # hibrido
+err_acptrate_dsara = [0.0011, 0.002, 0.0024, 0.0052, 0.0049, 0.0033, 0.0027, 0.0018, 0.0014, 0.0009, 0.0005, 0.0003,
+                      0.0002]  # prioritizerv6
+acpt_rate_sara = [0.974, 0.945, 0.9395, 0.8385, 0.6030, 0.4023, 0.328, 0.277, 0.2456, 0.2062, 0.170, 0.107, 0.0801]
+err_acptrate_sara = [0.0008922800054, 0.000783891420, 0.0005280157982450683, 0.00025514639468373425,
+                     0.004101290567621489, 0.0022332414518280324, 0.0012786731817062908, 0.0008922800054337467,
+                     0.0007838914206538084, 0.0005280157982450683, 0.00025514639468373425, 0.0012, 0.001]
+acpt_rate_nr = [0.9960724, 0.98021, 0.95910, 0.8110, 0.598, 0.4008, 0.3167, 0.2702, 0.239, 0.203, 0.168, 0.1016, 0.0803]
+err_acptrate_nr = [0.0007795876424107773, 0.00061797360, 0.0003614507363258345, 0.00024294588090333733,
+                   0.00409504618409599, 0.0018201023693472046, 0.001091101542655223, 0.0007795876424107773,
+                   0.0006179736073683946, 0.0003614507363258345, 0.00024294588090333733, 0.00402, 0.002749]
+acpt_rate_aar = [0.99604, 0.9804, 0.9313, 0.7749, 0.549596, 0.3542, 0.26818, 0.2198, 0.1997, 0.1529, 0.1183, 0.0903,
+                 0.0601]
+err_acptrate_aar = [0.000819, 0.000628, 0.0003775218043450037, 0.0002445211572782064, 0.0045900125211015,
+                    0.0019046415853732118, 0.001042075335326106, 0.0008198186747819495, 0.0006280366025132104,
+                    0.0003775218043450037, 0.0002445211572782064, 0.001402, 0.002749]
 #########################
 
 
@@ -117,74 +133,84 @@ profit_sara_b = []
 profit_nr_b = []
 profit_aar_b = []
 
-
-for i in range(0,len(arrival_rates)):
-    profit_dsara_b.append(profit_dsara[i]+0.1)
-    profit_sara_b.append(profit_sara[i]+0.1)
-    profit_nr_b.append(profit_nr[i]+0.1)
-    profit_aar_b.append(profit_aar[i]+0.1) 
+for i in range(0, len(arrival_rates)):
+    profit_dsara_b.append(profit_dsara[i] + 0.1)
+    profit_sara_b.append(profit_sara[i] + 0.1)
+    profit_nr_b.append(profit_nr[i] + 0.1)
+    profit_aar_b.append(profit_aar[i] + 0.1)
 
 profit_dsara = profit_dsara_b
 profit_sara = profit_sara_b
 profit_nr = profit_nr_b
 profit_aar = profit_aar_b
 
-
 pos = np.arange(len(profit_sara))
-font = {'family' : 'normal',
-        'size'   : 16}
+font = {'family': 'normal',
+        'size': 16}
 matplotlib.rc('font', **font)
 
 #################################### 3 barras ############################################################################
-barWidth = 0.22  #the width of the bars
+barWidth = 0.22  # the width of the bars
 fig, ax = plt.subplots()
-rects1 = ax.bar(pos-barWidth-0.055, profit_aar, barWidth, label='AAR',yerr=err_profit_aar,capsize=2, color = '#919190')
-rects2 = ax.bar(pos, profit_nr, barWidth, label='NR',yerr=err_profit_nr,capsize=2, color = 'red', alpha=.7)
-rects3 = ax.bar(pos+barWidth+0.055, profit_sara, barWidth, label='SARA',yerr=err_profit_sara,capsize=2, color = "#1e6bd6")
+rects1 = ax.bar(pos - barWidth - 0.055, profit_aar, barWidth, label='AAR', yerr=err_profit_aar, capsize=2,
+                color='#919190')
+rects2 = ax.bar(pos, profit_nr, barWidth, label='NR', yerr=err_profit_nr, capsize=2, color='red', alpha=.7)
+rects3 = ax.bar(pos + barWidth + 0.055, profit_sara, barWidth, label='SARA', yerr=err_profit_sara, capsize=2,
+                color="#1e6bd6")
 ax.set_ylabel('Profit')
 ax.set_xlabel('Arrival Rate')
 # general layout
-plt.xticks([r  for r in range(len(profit_aar))], arrival_rates)
-plt.legend(fontsize = 14,loc='lower right', shadow=True, fancybox=True)
+plt.xticks([r for r in range(len(profit_aar))], arrival_rates)
+plt.legend(fontsize=14, loc='lower right', shadow=True, fancybox=True)
 # plt.legend(fontsize = 14,loc='upper center', bbox_to_anchor=(0.5, 0.15), shadow=True, ncol=3)
-plt.savefig("rl_ArrivalRatevsMeanProfit_"+topology+".eps",bbox_inches = 'tight') 
+plt.savefig("rl_ArrivalRatevsMeanProfit_" + topology + ".eps", bbox_inches='tight')
 
 fig, ax = plt.subplots()
-rects1 = ax.bar(pos-barWidth-0.055, acpt_rate_aar, barWidth, label='AAR',yerr=err_acptrate_aar,capsize=2, color='#919190')
-rects2 = ax.bar(pos, acpt_rate_nr, barWidth, label='NR',yerr=err_acptrate_nr,capsize=2, color='red',alpha=.7)
-rects3 = ax.bar(pos+barWidth+0.055, acpt_rate_sara, barWidth, label='SARA',yerr=err_acptrate_sara,capsize=2, color = '#1e6bd6')
+rects1 = ax.bar(pos - barWidth - 0.055, acpt_rate_aar, barWidth, label='AAR', yerr=err_acptrate_aar, capsize=2,
+                color='#919190')
+rects2 = ax.bar(pos, acpt_rate_nr, barWidth, label='NR', yerr=err_acptrate_nr, capsize=2, color='red', alpha=.7)
+rects3 = ax.bar(pos + barWidth + 0.055, acpt_rate_sara, barWidth, label='SARA', yerr=err_acptrate_sara, capsize=2,
+                color='#1e6bd6')
 ax.set_ylabel('Acceptance Ratio')
 ax.set_xlabel('Arrival Rate')
 # # general layout
-plt.xticks([r  for r in range(len(acpt_rate_aar))], arrival_rates)
-plt.legend(fontsize = 14, fancybox=True, shadow=True)
-plt.savefig("rl_ArrivalRatevsMeanAcceptanceRatio_"+topology+".eps",bbox_inches = 'tight') 
+plt.xticks([r for r in range(len(acpt_rate_aar))], arrival_rates)
+plt.legend(fontsize=14, fancybox=True, shadow=True)
+plt.savefig("rl_ArrivalRatevsMeanAcceptanceRatio_" + topology + ".eps", bbox_inches='tight')
 ###########################################################################################################################
 
 #################################### 4 barras (con drl) ###################################################################
-barWidth = 0.16  #the width of the bars
+barWidth = 0.16  # the width of the bars
 fig, ax = plt.subplots()
-rects1 = ax.bar(pos-barWidth*1.5-0.075, profit_aar, barWidth, label='AAR',yerr=err_profit_aar,capsize=2, color = '#919190')
-rects2 = ax.bar(pos-barWidth/2-0.025, profit_nr, barWidth, label='NR',yerr=err_profit_nr,capsize=2, color = 'red', alpha=.7)
-rects3 = ax.bar(pos+barWidth/2+0.025, profit_sara, barWidth, label='SARA',yerr=err_profit_sara,capsize=2, color = "#1e6bd6")
-rects4 = ax.bar(pos+barWidth*1.5+0.075, profit_dsara, barWidth, label='DSARA',yerr=err_profit_dsara,capsize=2, color = 'orange')
+rects1 = ax.bar(pos - barWidth * 1.5 - 0.075, profit_aar, barWidth, label='AAR', yerr=err_profit_aar, capsize=2,
+                color='#919190')
+rects2 = ax.bar(pos - barWidth / 2 - 0.025, profit_nr, barWidth, label='NR', yerr=err_profit_nr, capsize=2, color='red',
+                alpha=.7)
+rects3 = ax.bar(pos + barWidth / 2 + 0.025, profit_sara, barWidth, label='SARA', yerr=err_profit_sara, capsize=2,
+                color="#1e6bd6")
+rects4 = ax.bar(pos + barWidth * 1.5 + 0.075, profit_dsara, barWidth, label='DSARA', yerr=err_profit_dsara, capsize=2,
+                color='orange')
 ax.set_ylabel('Profit')
 ax.set_xlabel('Arrival Rate')
 # general layout
-plt.xticks([r  for r in range(len(profit_aar))], arrival_rates)
-plt.legend(fontsize = 14,loc='lower right', shadow=True, fancybox=True)
+plt.xticks([r for r in range(len(profit_aar))], arrival_rates)
+plt.legend(fontsize=14, loc='lower right', shadow=True, fancybox=True)
 # plt.legend(fontsize = 14,loc='upper center', bbox_to_anchor=(0.5, 0.15), shadow=True, ncol=3)
-plt.savefig("drl_ArrivalRatevsMeanProfit_"+topology+".eps",bbox_inches = 'tight') 
+plt.savefig("drl_ArrivalRatevsMeanProfit_" + topology + ".eps", bbox_inches='tight')
 
 fig, ax = plt.subplots()
-rects1 = ax.bar(pos-barWidth*1.5-0.075, acpt_rate_aar, barWidth, label='AAR',yerr=err_acptrate_aar,capsize=2, color='#919190')
-rects2 = ax.bar(pos-barWidth/2-0.025, acpt_rate_nr, barWidth, label='NR',yerr=err_acptrate_nr,capsize=2, color='red',alpha=.7)
-rects3 = ax.bar(pos+barWidth/2+0.025, acpt_rate_sara, barWidth, label='SARA',yerr=err_acptrate_sara,capsize=2, color = '#1e6bd6')
-rects4 = ax.bar(pos+barWidth*1.5+0.075, acpt_rate_dsara, barWidth, label='DSARA',yerr=err_acptrate_dsara,capsize=2, color = 'orange')
+rects1 = ax.bar(pos - barWidth * 1.5 - 0.075, acpt_rate_aar, barWidth, label='AAR', yerr=err_acptrate_aar, capsize=2,
+                color='#919190')
+rects2 = ax.bar(pos - barWidth / 2 - 0.025, acpt_rate_nr, barWidth, label='NR', yerr=err_acptrate_nr, capsize=2,
+                color='red', alpha=.7)
+rects3 = ax.bar(pos + barWidth / 2 + 0.025, acpt_rate_sara, barWidth, label='SARA', yerr=err_acptrate_sara, capsize=2,
+                color='#1e6bd6')
+rects4 = ax.bar(pos + barWidth * 1.5 + 0.075, acpt_rate_dsara, barWidth, label='DSARA', yerr=err_acptrate_dsara,
+                capsize=2, color='orange')
 ax.set_ylabel('Acceptance Ratio')
 ax.set_xlabel('Arrival Rate')
 # # general layout
-plt.xticks([r  for r in range(len(acpt_rate_aar))], arrival_rates)
-plt.legend(fontsize = 14, fancybox=True, shadow=True)
-plt.savefig("drl_ArrivalRatevsMeanAcceptanceRatio_"+topology+".eps",bbox_inches = 'tight') 
+plt.xticks([r for r in range(len(acpt_rate_aar))], arrival_rates)
+plt.legend(fontsize=14, fancybox=True, shadow=True)
+plt.savefig("drl_ArrivalRatevsMeanAcceptanceRatio_" + topology + ".eps", bbox_inches='tight')
 ###########################################################################################################################
