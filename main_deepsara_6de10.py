@@ -1,24 +1,20 @@
-import numpy as np
-import random
-import math
-import nsl_request
-import nsl_placement
-import substrate_graphs
 import copy
-import calculate_metrics
-import ql
-import dql
-# import telegram_bot as bot
+import logging
+import math
+import os
+import random
 import time
 
-# import bisect
-# simulation parameters
-# seed = 0
+import numpy as np
+
+import calculate_metrics
+import dql
+import nsl_placement
+import nsl_request
+import substrate_graphs
+
 repetitions = 33  # 33
 twindow_length = 1
-# embb_arrival_rate = 10 #5#1#2 #reqXsecond
-# urllc_arrival_rate = 40 #5#2.5 #reqXsecond
-# miot_arrival_rate = 10 #5#1#2 #reqXsecond
 
 embb_arrival_rate = 0
 urllc_arrival_rate = 0
@@ -39,20 +35,13 @@ avble_edge_size = 10
 avble_central_size = 10
 avble_bw_size = 10
 
-pct_inst_embb_size = 10  # porcentaje de slices instanciados de tipo embb
+pct_inst_embb_size = 10  # percentage of instantiated slices of type embb
 pct_inst_urllc_size = 10
 pct_inst_miot_size = 10
 
-# pct_arriv_embb_size = 10
-# pct_arriv_urllc_size = 10
-# pct_arriv_miot_size = 10
-
-# n_states = avble_edge_size*avble_central_size
-# n_states = avble_edge_size*avble_central_size*avble_bw_size
 n_states = avble_edge_size * avble_central_size * avble_bw_size * pct_inst_embb_size * pct_inst_urllc_size * pct_inst_miot_size
-# n_states = avble_edge_size*avble_central_size*avble_bw_size*pct_inst_embb_size*pct_inst_urllc_size*pct_inst_miot_size*pct_arriv_embb_size*pct_arriv_urllc_size*pct_arriv_miot_size
 
-# #30 actions:
+# 30 actions:
 # actions = [
 # (1,1,1),(0.75,1,1),(1,0.75,1),(1,1,0.75),(0.75,0.75,1),(1,0.75,0.75),(0.75,1,0.75),
 # (0.75,1,0.5),(0.5,1,0.75),(1,0.75,0.5),(0.5,0.75,1),
@@ -169,9 +158,6 @@ class Sim:
     def set_run_till(self, t):
         self.run_till = t
 
-    # def set_substrate(self,substrate):
-    #     self.substrate = substrate
-
     def create_event(self, tipo, inicio, extra=None, f=None):
         if inicio < self.horario:
             print("***false")
@@ -194,44 +180,32 @@ class Sim:
 
     def add_event(self, evt):
         request = {}
-        # encontrar indice y adicionar evt en esa posicion
-        # index = 0
-        # for i in range(len(self.eventos)):
-        #     if self.eventos[i].inicio > evt.inicio: 
-        #         index = i 
-        #         break
-        #     else:
-        #         index = i+1 
+
         index = self.binary_search(self.eventos, 0, len(self.eventos) - 1, evt.inicio)
         self.eventos = self.eventos[:index] + [evt] + self.eventos[index:]
-        # self.eventos.insert(index,evt)
-        # self.eventos[index:index] = [evt]
 
         if evt.tipo == "arrival":
-            # agregar nslrs en window list
+            # add nslrs in window list
             self.total_reqs += 1
-            service_type = evt.extra["service_type"]  #
-            request = nsl_request.get_nslr(self.total_reqs, service_type, mean_operation_time)  #
+            service_type = evt.extra["service_type"]
+            request = nsl_request.get_nslr(self.total_reqs, service_type, mean_operation_time)
 
             if evt.extra["service_type"] == "embb":
                 self.total_embb_reqs += 1
-                self.window_req_list[0].append(copy.deepcopy(request))  #
+                self.window_req_list[0].append(copy.deepcopy(request))
             elif evt.extra["service_type"] == "urllc":
                 self.total_urllc_reqs += 1
-                self.window_req_list[1].append(copy.deepcopy(request))  #
+                self.window_req_list[1].append(copy.deepcopy(request))
             else:  # evt.extra["service_type"] == "miot":
                 self.total_miot_reqs += 1
-                self.window_req_list[2].append(copy.deepcopy(request))  #
-
-            # service_type = evt.extra["service_type"]
-            # request = nsl_request.get_nslr(self.total_reqs,service_type,mean_operation_time)
-            # self.window_req_list.append(copy.deepcopy(request))
+                self.window_req_list[2].append(copy.deepcopy(request))
 
     def print_eventos(self):
         print("HORARIO: ", self.horario, "\nTotal Eventos:", len(self.eventos))
         for i in range(len(self.eventos)):
             print(self.eventos[i].tipo, self.eventos[i].inicio, end=" > ")
-        # print("++list: ",len(self.window_req_list[0])+len(self.window_req_list[1])+len(self.window_req_list[2]))
+        logging.info("++list: ",
+                     len(self.window_req_list[0]) + len(self.window_req_list[1]) + len(self.window_req_list[2]))
 
         print("\n")
 
@@ -244,9 +218,7 @@ class Sim:
             return p
 
     def run(self, c):
-        # self.print_eventos()
         while self.horario < self.run_till:
-            # self.print_eventos()
             p = self.get_proximo_evento()
             if p == None:
                 return
@@ -263,10 +235,10 @@ def aleatorio(seed):
 
 
 def get_interarrival_time(arrival_rate):
-    seed = random.randint(10000000, 8000000000)  # cambiar solo para cada repetición
+    seed = random.randint(10000000, 8000000000)  # change only for each repeat
     p = aleatorio(seed)
-    # print(p)     
-    inter_arrival_time = -math.log(1.0 - p) / arrival_rate  # the inverse of the CDF of Exponential(_lamnbda)
+    # the inverse of the CDF of Exponential(_lamnbda)
+    inter_arrival_time = -math.log(1.0 - p) / arrival_rate
     # inter_arrival_time = float('{0:,.2f}'.format(inter_arrival_time))
 
     return inter_arrival_time
@@ -274,30 +246,22 @@ def get_interarrival_time(arrival_rate):
 
 def filtro(window_req_list, action):
     granted_req_list = []
-    auxiliar_list = []
     for req in window_req_list:
         if (req.service_type == "embb" and req.bandera <= actions[action][0] * 100) or (
                 req.service_type == "urllc" and req.bandera <= actions[action][1] * 100) or (
                 req.service_type == "miot" and req.bandera <= actions[action][2] * 100):
-            # print("**agregando request...")
+            logging.debug("**agregando request...")
             granted_req_list.append(req)
-    #     else:
-    #         auxiliar_list.append(req)
-
-    # granted_req_list = granted_req_list + auxiliar_list 
 
     return granted_req_list
 
 
-def prioritizer_v1(window_req_list, action_index):  ##v1
-    # print("****prioritizing...")
+def prioritizer_v1(window_req_list, action_index):  # v1
+    logging.debug("****prioritizing...")
     action = actions[action_index]
-    # embb_list = []
-    # urllc_list = []
-    # miot_list = []
     granted_req_list = []
 
-    # Conversion de accion en proportion ej: #action = (0.75,1,0.25) -> (3,4,1) reresenta 3:4:1
+    # Conversion of action in proportion ej: #action = (0.75,1,0.25) -> (3,4,1) reresenta 3:4:1
     translated_action = []
     for i in action:
         if i == 1:
@@ -309,16 +273,7 @@ def prioritizer_v1(window_req_list, action_index):  ##v1
         else:
             translated_action.append(1)
 
-    # se agrupan las NSLRs por service_type
-    # for req in window_req_list: 
-    #     if req.service_type == "embb":
-    #         embb_list.append(req)
-    #     elif req.service_type == "urllc":
-    #         urllc_list.append(req)
-    #     else:
-    #         miot_list.append(req)
-
-    # mientras haya peticiones en las listas se las adiciona a la lista priorizada
+    # while there are requests in the lists they are added to the prioritized list
     embb_list = window_req_list[0]
     urllc_list = window_req_list[1]
     miot_list = window_req_list[2]
@@ -347,19 +302,20 @@ def takeFirst(elem):
 
 
 def prioritizer(window_req_list, action_index):  # v2
-    # print("****prioritizing...")
+    logging.debug("****prioritizing...")
     action = actions[action_index]
     action2 = []
     granted_req_list = []
     remaining_req_list = []
 
     # action = (0.75,1,0.25) -> (cant1,cant2,cant3)
-    # traducir action en porcentage a cantidades (entero más cercano)
-    action2.append([action[0], round(action[0] * len(window_req_list[0])), 0])  # [pctg,cant,tipo] ej:[0.75,75,0]
+    # translate action in percentage to quantities (nearest integer)
+    # [pctg,cant,tipo] ej:[0.75,75,0]
+    action2.append([action[0], round(action[0] * len(window_req_list[0])), 0])
     action2.append([action[1], round(action[1] * len(window_req_list[1])), 1])
     action2.append([action[2], round(action[2] * len(window_req_list[2])), 2])
 
-    # de acuerdo a "action", ordenar "action2"
+    # according to "action", sort "action2"
     action2.sort(key=takeFirst, reverse=True)
 
     for j in action2:
@@ -375,13 +331,13 @@ def prioritizer(window_req_list, action_index):  # v2
                     remaining_req_list.append(window_req_list[j[2]][i])
 
     return granted_req_list, remaining_req_list  # v6
-    # return granted_req_list+remaining_req_list, remaining_req_list #v1
 
 
 def update_resources(substrate, nslr, kill):
     nodes = substrate.graph["nodes"]
     links = substrate.graph["links"]
-    for vnf in nslr.nsl_graph_reduced["vnodes"]:  # se recorre los nodos del grafo reducido del nslr aceptado
+    # the nodes of the reduced graph of the accepted nslr are traversed
+    for vnf in nslr.nsl_graph_reduced["vnodes"]:
         if "mapped_to" in vnf:
             n = next(n for n in nodes if (n["id"] == vnf["mapped_to"] and n["type"] == vnf["type"]))  #
             if vnf["type"] == 0:
@@ -397,14 +353,14 @@ def update_resources(substrate, nslr, kill):
                 n["cpu"] = n["cpu"] - vnf["cpu"]
                 substrate.graph[tipo] -= vnf["cpu"]
     for vlink in nslr.nsl_graph_reduced["vlinks"]:
-        try:  # cuando dos vnfs se instancian en un mismo nodo no hay link
+        try:  # when two vnfs are instantiated in the same node there is no link
             path = vlink["mapped_to"]
         except KeyError:
             path = []
         for i in range(len(path) - 1):
             try:
                 l = next(l for l in links if ((l["source"] == path[i] and l["target"] == path[i + 1]) or (
-                            l["source"] == path[i + 1] and l["target"] == path[i])))
+                        l["source"] == path[i + 1] and l["target"] == path[i])))
                 if kill:
                     l["bw"] += vlink["bw"]
                     substrate.graph["bw"] += vlink["bw"]
@@ -416,8 +372,8 @@ def update_resources(substrate, nslr, kill):
 
 
 def resource_allocation(cn):  # cn=controller
-    # hace allocation para el conjunto de nslrs capturadas en una ventana de tiempo
-    # las metricas calculadas aqui corresponden a un step
+    # makes allocation for the set of nslrs captured in a time window
+    # the metrics calculated here correspond to a step
 
     sim = cn.simulation
     substrate = cn.substrate
@@ -426,8 +382,6 @@ def resource_allocation(cn):  # cn=controller
     step_miot_profit = 0
     step_link_profit = 0
     step_node_profit = 0
-    step_edge_profit = 0
-    step_central_profit = 0
     step_profit = 0
     step_edge_cpu_utl = 0
     step_central_cpu_utl = 0
@@ -440,26 +394,23 @@ def resource_allocation(cn):  # cn=controller
     max_profit = max_link_profit + max_node_profit
 
     for req in sim.granted_req_list:
-        # print("**",req.service_type,req.nsl_graph)
+        logging.debug("**", req.service_type, req.nsl_graph)
         sim.attended_reqs += 1
         rejected = nsl_placement.nsl_placement(req, substrate)  # mapping
         if not rejected:
-            # instantiation y adicion de evento de termination
+            # instantiation and termination event addition
             req.set_end_time(sim.horario + req.operation_time)
-            graph = req.nsl_graph_reduced
-            update_resources(substrate, req, False)  # instantiation, ocupar recursos
+            update_resources(substrate, req, False)  # instantiation, occupy resources
             evt = sim.create_event(tipo="termination", inicio=req.end_time, extra=req, f=func_terminate)
             sim.add_event(evt)
 
-            # calculo de metricas (profit, acpt_rate, contadores)
+            # calculation of metrics (profit, accept_rate, counters)
             sim.accepted_reqs += 1
             profit_nodes = calculate_metrics.calculate_profit_nodes(req, end_simulation_time)
             profit_links = calculate_metrics.calculate_profit_links(req, end_simulation_time) * 10
             step_profit += (profit_nodes + profit_links) / max_profit  # the total profit in this step is the reward
             step_link_profit += profit_links / max_link_profit
             step_node_profit += profit_nodes / max_node_profit
-            step_edge_profit = 0  # ajustar
-            step_central_profit = 0  # ajustar
 
             if req.service_type == "embb":
                 sim.current_instatiated_reqs[0] += 1
@@ -479,7 +430,6 @@ def resource_allocation(cn):  # cn=controller
             step_central_cpu_utl += b / (centralized_initial * end_simulation_time)
             step_links_bw_utl += c * 10 / (bw_initial * end_simulation_time)
             step_node_utl += (a + b) / ((edge_initial + centralized_initial) * end_simulation_time)
-            # step_total_utl += (a+b+(c*10))/((edge_initial+centralized_initial+bw_initial)*end_simulation_time)
             step_total_utl += (step_node_utl + step_links_bw_utl) / 2
 
     return step_profit, step_node_profit, step_link_profit, step_embb_profit, step_urllc_profit, step_miot_profit, step_total_utl, step_node_utl, step_links_bw_utl, step_edge_cpu_utl, step_central_cpu_utl
@@ -488,7 +438,7 @@ def resource_allocation(cn):  # cn=controller
 def get_code(value):
     cod = 0
     value = value * 100
-    # #para granularidad de 5 (100/5) -> (20,40,60,80,100)
+    # for granularity of 5 (100/5) -> (20,40,60,80,100)
     # if value <= 20:
     #     cod = 0
     # elif value <= 40:
@@ -501,7 +451,7 @@ def get_code(value):
     #     cod = 4
     # return cod
 
-    # para granularidad de 10 (100/10) -> (10,20,30,...100)
+    # for granularity of 10 (100/10) -> (10,20,30,...100)
     if value <= 10:
         cod = 0
     elif value <= 20:
@@ -546,7 +496,7 @@ def translateStateToIndex(state):
     # index = cod_avble_edge*avble_central_size + cod_avble_central
 
     # index for a 3-parameter state
-    # index = cod_avble_edge*avble_central_size*avble_bw_size + cod_avble_central*avble_bw_size + cod_avble_bw
+    # index = cod_avble_edge * avble_central_size * avble_bw_size + cod_avble_central * avble_bw_size + cod_avble_bw
 
     # index for a 6-parameter state
     index = cod_avble_edge * avble_central_size * avble_bw_size * pct_inst_embb_size * pct_inst_urllc_size * pct_inst_miot_size
@@ -556,15 +506,15 @@ def translateStateToIndex(state):
     + cod_pct_urllc * pct_inst_miot_size
     + cod_pct_miot
 
-    # #index for a 9-parameter state
-    # index = cod_avble_edge*avble_central_size*avble_bw_size*pct_inst_embb_size*pct_inst_urllc_size*pct_inst_miot_size*pct_arriv_embb_size*pct_arriv_urllc_size*pct_arriv_miot_size 
-    # + cod_avble_central*avble_bw_size*pct_inst_embb_size*pct_inst_urllc_size*pct_inst_miot_size*pct_arriv_embb_size*pct_arriv_urllc_size*pct_arriv_miot_size
-    # + cod_avble_bw*pct_inst_embb_size*pct_inst_urllc_size*pct_inst_miot_size*pct_arriv_embb_size*pct_arriv_urllc_size*pct_arriv_miot_size
-    # + cod_pct_embb*pct_inst_urllc_size*pct_inst_miot_size*pct_arriv_embb_size*pct_arriv_urllc_size*pct_arriv_miot_size
-    # + cod_pct_urllc*pct_inst_miot_size *pct_arriv_embb_size*pct_arriv_urllc_size*pct_arriv_miot_size
-    # + cod_pct_miot*pct_arriv_embb_size*pct_arriv_urllc_size*pct_arriv_miot_size
-    # + cod_pct_arriv_embb*pct_arriv_urllc_size*pct_arriv_miot_size
-    # + cod_pct_arriv_urllc*pct_arriv_miot_size
+    # index for a 9-parameter state
+    # index = cod_avble_edge * avble_central_size * avble_bw_size * pct_inst_embb_size * pct_inst_urllc_size * pct_inst_miot_size * pct_arriv_embb_size * pct_arriv_urllc_size * pct_arriv_miot_size
+    # + cod_avble_central * avble_bw_size * pct_inst_embb_size * pct_inst_urllc_size * pct_inst_miot_size * pct_arriv_embb_size * pct_arriv_urllc_size * pct_arriv_miot_size
+    # + cod_avble_bw * pct_inst_embb_size * pct_inst_urllc_size * pct_inst_miot_size * pct_arriv_embb_size * pct_arriv_urllc_size * pct_arriv_miot_size
+    # + cod_pct_embb * pct_inst_urllc_size * pct_inst_miot_size * pct_arriv_embb_size * pct_arriv_urllc_size * pct_arriv_miot_size
+    # + cod_pct_urllc * pct_inst_miot_size * pct_arriv_embb_size * pct_arriv_urllc_size * pct_arriv_miot_size
+    # + cod_pct_miot * pct_arriv_embb_size * pct_arriv_urllc_size * pct_arriv_miot_size
+    # + cod_pct_arriv_embb * pct_arriv_urllc_size * pct_arriv_miot_size
+    # + cod_pct_arriv_urllc * pct_arriv_miot_size
     # + cod_pct_arriv_miot
 
     return int(index)
@@ -609,7 +559,7 @@ def get_state(substrate, simulation):
     cod_pct_arriv_miot = get_code(pct_arriv_miot)
 
     # 3-parameter state:
-    # state = [np.float32(cod_avble_edge),np.float32(cod_avble_central),np.float32(cod_avble_bw)]
+    # state = [np.float32(cod_avble_edge), np.float32(cod_avble_central), np.float32(cod_avble_bw)]
 
     # 6-parameter state:
     state = [
@@ -621,25 +571,25 @@ def get_state(substrate, simulation):
         np.float32(cod_pct_miot)
     ]
 
-    # #9-parameter state:
+    # 9-parameter state:
     # state = [
-    #             np.float32(cod_avble_edge),
-    #             np.float32(cod_avble_central),
-    #             np.float32(cod_avble_bw),
-    #             np.float32(cod_pct_embb),
-    #             np.float32(cod_pct_urllc),
-    #             np.float32(cod_pct_miot),
-    #             np.float32(cod_pct_arriv_embb),
-    #             np.float32(cod_pct_arriv_urllc),
-    #             np.float32(cod_pct_arriv_miot)
-    #         ]
+    #     np.float32(cod_avble_edge),
+    #     np.float32(cod_avble_central),
+    #     np.float32(cod_avble_bw),
+    #     np.float32(cod_pct_embb),
+    #     np.float32(cod_pct_urllc),
+    #     np.float32(cod_pct_miot),
+    #     np.float32(cod_pct_arriv_embb),
+    #     np.float32(cod_pct_arriv_urllc),
+    #     np.float32(cod_pct_arriv_miot)
+    # ]
 
     return state
 
 
 def func_arrival(c, evt):  # NSL arrival
     s = c.simulation
-    # print("**/",evt.extra["arrival_rate"])
+    logging.debug("**/", evt.extra["arrival_rate"])
     arrival_rate = evt.extra["arrival_rate"]
     service_type = evt.extra["service_type"]
     inter_arrival_time = get_interarrival_time(arrival_rate)
@@ -669,28 +619,24 @@ contador_windows = 0
 
 
 def func_twindow(c, evt):
-    # la venta de tiempo ha expirado. Las nslrs recolectadas hasta ahora seran analizadas para su admision
+    # the time sale has expired. The nslrs collected so far will be analyzed for admission.
     global contador_windows
     sim = c.simulation
     contador_windows += 1
 
     if evt.extra["first_state"]:
         # first state index
-        # todos los recursos al 100% (con granularidad de 5)
+        # all resources at 100% (with granularity of 5)
         state = get_state(c.substrate, c.simulation)
-
-        # s = translateStateToIndex(state)
-        # a = agente.take_action(s,True)
 
         a = agente.step(state, 0)
     else:
-        s = evt.extra["current_state"]
         a = evt.extra["action"]
-        # print("##agent",agente.last_state," ",agente.last_action)
+        logging.debug("##agent", agente.last_state, " ", agente.last_action)
 
-    sim.granted_req_list, remaining_req_list = prioritizer(sim.window_req_list,
-                                                           a)  # se filtra la lista de reqs dependiendo de la accion
-    # la lista se envia al modulo de Resource Allocation
+    # the list of reqs is filtered depending on the action
+    sim.granted_req_list, remaining_req_list = prioritizer(sim.window_req_list, a)
+    # the list is sent to the Resource Allocation module
     step_profit, step_node_profit, step_link_profit, step_embb_profit, step_urllc_profit, step_miot_profit, step_total_utl, step_node_utl, step_links_bw_utl, step_edge_cpu_utl, step_central_cpu_utl = resource_allocation(
         c)
     c.total_profit += step_profit
@@ -707,10 +653,6 @@ def func_twindow(c, evt):
 
     r = step_profit
     next_state = get_state(c.substrate, c.simulation)  # getting the next state
-
-    # s_ = translateStateToIndex(next_state) #getting index of the next state
-    # a_ = agente.take_action(s_,False) #select action for the next state
-    # agente.updateQ(step_profit,s,a,s_,a_,evt.extra["end_state"]) #(reward,s,a,s_,a_end_sate)
 
     s_ = next_state
     a_ = agente.step(s_, r)
@@ -817,17 +759,14 @@ def main():
             miot_utl_rep.append([])
 
         for i in range(repetitions):
-            # agente = ql.Qagent(0.9, 0.9, 0.9, episodes, n_states, n_actions) #(alpha, gamma, epsilon, episodes, n_states, n_actions)
             agente = dql.Agent(6, n_actions)
 
             for j in range(episodes):
                 agente.handle_episode_start()
 
                 print("\n", "episode:", j, "\n")
-                controller = None
                 controller = Controlador()
                 controller.substrate = copy.deepcopy(substrate_graphs.get_graph("64node_BA"))  # get substrate
-                # controller.substrate = copy.deepcopy(substrate_graphs.get_graph("abilene")) #get substrate    
                 edge_initial = controller.substrate.graph["edge_cpu"]
                 centralized_initial = controller.substrate.graph["centralized_cpu"]
                 bw_initial = controller.substrate.graph["bw"]
@@ -861,9 +800,9 @@ def main():
                 urllc_utl_rep[j].append(controller.urllc_utl)
                 miot_utl_rep[j].append(controller.miot_utl)
 
-            # bot.sendMessage("Repetition " + str(i) + " finishes!")
-
-            f = open("deepsara_" + str(
+            logging.info("*******Repetition " + str(i) + " finishes!*******")
+            my_path = os.path.abspath(__file__)
+            f = open(my_path + "/outputs/" + "deepsara_" + str(
                 m) + "_64BA_6de10sta_30actv22_target_update_freq=100_maxexpl05_btchsz15_rpsrtsz400_anrate1-400_1h150ns_350epi_prioritizerv6.txt",
                      "w+")
 
@@ -914,9 +853,9 @@ def main():
 
 
 if __name__ == '__main__':
-    # bot.sendMessage("Simulation starts!")
+    logging.info("*******Simulation starts!*******")
     start = time.time()
     main()
     end = time.time()
-    # bot.sendMessage("Simulation finishes!")
-    # bot.sendMessage("total time: " + str(end-start))
+    logging.info("*******Simulation finishes!*******")
+    logging.info("*******total time: " + str(end - start) + "*******")

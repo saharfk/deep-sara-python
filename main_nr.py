@@ -1,18 +1,16 @@
-import numpy as np
-import random
-import math
-import nsl_request
-import nsl_placement
-import substrate_graphs
 import copy
-import calculate_metrics
-import ql as qagent
-import telegram_bot as bot
+import logging
+import math
+import os
+import random
 import time
 
-# import bisect
-# simulation parameters
-# seed = 0
+import calculate_metrics
+import nsl_placement
+import nsl_request
+import ql as qagent
+import substrate_graphs
+
 repetitions = 33
 twindow_length = 1
 embb_arrival_rate = 0
@@ -105,14 +103,10 @@ class Sim:
     def set_run_till(self, t):
         self.run_till = t
 
-    # def set_substrate(self,substrate):
-    #     self.substrate = substrate
-
     def create_event(self, tipo, inicio, extra=None, f=None):
         if inicio < self.horario:
             print("***false")
             return False
-        # else:     
         e = Evento(tipo, inicio, extra, f)
         return e
 
@@ -129,19 +123,8 @@ class Sim:
             return l
 
     def add_event(self, evt):
-        request = {}
-        # encontrar indice y adicionar evt en esa posicion
-        # index = 0
-        # for i in range(len(self.eventos)):
-        #     if self.eventos[i].inicio > evt.inicio: 
-        #         index = i 
-        #         break
-        #     else:
-        #         index = i+1 
         index = self.binary_search(self.eventos, 0, len(self.eventos) - 1, evt.inicio)
         self.eventos = self.eventos[:index] + [evt] + self.eventos[index:]
-        # self.eventos.insert(index,evt)
-        # self.eventos[index:index] = [evt]
 
         if evt.tipo == "arrival":
             # agregar nslrs en window list
@@ -174,11 +157,10 @@ class Sim:
             return p
 
     def run(self, c):
-        # self.print_eventos()
         while self.horario < self.run_till:
             self.print_eventos()
             p = self.get_proximo_evento()
-            if p == None:
+            if p is None:
                 return
             p.function(c, p)
 
@@ -193,23 +175,22 @@ def aleatorio(seed):
 
 
 def get_interarrival_time(arrival_rate):
-    seed = random.randint(10000000, 8000000000)  # cambiar solo para cada repetición
+    seed = random.randint(10000000, 8000000000)  # change only for each repeat
     p = aleatorio(seed)
-    # print(p)     
-    inter_arrival_time = -math.log(1.0 - p) / arrival_rate  # the inverse of the CDF of Exponential(_lamnbda)
-    # inter_arrival_time = float('{0:,.2f}'.format(inter_arrival_time))
+    # the inverse of the CDF of Exponential(_lamnbda)
+    inter_arrival_time = -math.log(1.0 - p) / arrival_rate
 
     return inter_arrival_time
 
 
 def filtro(window_req_list, action):
-    # print("****filtrando...")
+    logging.debug("****filtrando...")
     granted_req_list = []
     for req in window_req_list:
         if (req.service_type == "embb" and req.bandera <= actions[action][0] * 100) or (
                 req.service_type == "urllc" and req.bandera <= actions[action][1] * 100) or (
                 req.service_type == "miot" and req.bandera <= actions[action][2] * 100):
-            # print("**agregando request...")
+            logging.debug("**agregando request...")
             granted_req_list.append(req)
 
     return granted_req_list
@@ -218,7 +199,8 @@ def filtro(window_req_list, action):
 def update_resources(substrate, nslr, kill):
     nodes = substrate.graph["nodes"]
     links = substrate.graph["links"]
-    for vnf in nslr.nsl_graph_reduced["vnodes"]:  # se recorre los nodos del grafo reducido del nslr aceptado
+    # the nodes of the reduced graph of the accepted nslr are traversed
+    for vnf in nslr.nsl_graph_reduced["vnodes"]:
         if "mapped_to" in vnf:
             n = next(n for n in nodes if (n["id"] == vnf["mapped_to"] and n["type"] == vnf["type"]))  #
             if vnf["type"] == 0:
@@ -234,14 +216,14 @@ def update_resources(substrate, nslr, kill):
                 n["cpu"] = n["cpu"] - vnf["cpu"]
                 substrate.graph[tipo] -= vnf["cpu"]
     for vlink in nslr.nsl_graph_reduced["vlinks"]:
-        try:  # cuando dos vnfs se instancian en un mismo nodo no hay link
+        try:  # when two vnfs are instantiated in the same node there is no link
             path = vlink["mapped_to"]
         except KeyError:
             path = []
         for i in range(len(path) - 1):
             try:
                 l = next(l for l in links if ((l["source"] == path[i] and l["target"] == path[i + 1]) or (
-                            l["source"] == path[i + 1] and l["target"] == path[i])))
+                        l["source"] == path[i + 1] and l["target"] == path[i])))
                 if kill:
                     l["bw"] += vlink["bw"]
                     substrate.graph["bw"] += vlink["bw"]
@@ -253,8 +235,8 @@ def update_resources(substrate, nslr, kill):
 
 
 def resource_allocation(cn):  # cn=controller
-    # hace allocation para el conjunto de nslrs capturadas en una ventana de tiempo
-    # las metricas calculadas aqui corresponden a un step
+    # makes allocation for the set of nslrs captured in a time window
+    # the metrics calculated here correspond to a step
 
     sim = cn.simulation
     substrate = cn.substrate
@@ -263,8 +245,6 @@ def resource_allocation(cn):  # cn=controller
     step_miot_profit = 0
     step_link_profit = 0
     step_node_profit = 0
-    step_edge_profit = 0
-    step_central_profit = 0
     step_profit = 0
     step_edge_cpu_utl = 0
     step_central_cpu_utl = 0
@@ -277,26 +257,25 @@ def resource_allocation(cn):  # cn=controller
     max_profit = max_link_profit + max_node_profit
 
     for req in sim.granted_req_list:
-        # print("**",req.service_type,req.nsl_graph)
+        logging.debug("**", req.service_type, req.nsl_graph)
         sim.attended_reqs += 1
         rejected = nsl_placement.nsl_placement(req, substrate)  # mapping
         if not rejected:
-            # adicionar evento de instantiation y termination
+            # add instantiation and termination event
             req.set_end_time(sim.horario + req.operation_time)
-            graph = req.nsl_graph_reduced
-            update_resources(substrate, req, False)  # instantiation, ocupar recursos
+            # instantiation, ocupar recursos
+            update_resources(substrate, req, False)
             evt = sim.create_event(tipo="termination", inicio=req.end_time, extra=req, f=func_terminate)
             sim.add_event(evt)
 
-            # calculo de metricas (profit, acpt_rate, contadores)
+            # calculation of metrics (profit, accept_rate, counters)
             sim.accepted_reqs += 1
             profit_nodes = calculate_metrics.calculate_profit_nodes(req, end_simulation_time)
             profit_links = calculate_metrics.calculate_profit_links(req, end_simulation_time) * 10
-            step_profit += (profit_nodes + profit_links) / max_profit  # the total profit in this step is the reward
+            # the total profit in this step is the reward
+            step_profit += (profit_nodes + profit_links) / max_profit
             step_link_profit += profit_links / max_link_profit
             step_node_profit += profit_nodes / max_node_profit
-            step_edge_profit = 0  # ajustar
-            step_central_profit = 0  # ajustar
 
             if req.service_type == "embb":
                 sim.embb_accepted_reqs += 1
@@ -313,7 +292,6 @@ def resource_allocation(cn):  # cn=controller
             step_central_cpu_utl += b / (centralized_initial * end_simulation_time)
             step_links_bw_utl += c * 10 / (bw_initial * end_simulation_time)
             step_node_utl += (a + b) / ((edge_initial + centralized_initial) * end_simulation_time)
-            # step_total_utl += (a+b+(c*10))/((edge_initial+centralized_initial+bw_initial)*end_simulation_time)
             step_total_utl += (step_node_utl + step_links_bw_utl) / 2
 
     return step_profit, step_node_profit, step_link_profit, step_embb_profit, step_urllc_profit, step_miot_profit, step_total_utl, step_node_utl, step_links_bw_utl, step_edge_cpu_utl, step_central_cpu_utl
@@ -322,7 +300,7 @@ def resource_allocation(cn):  # cn=controller
 def get_code(value):
     cod = 0
     value = value * 100
-    # para granularidad de 5 (100/5) -> (20,40,60,80,100)
+    # for granularity of 5 (100/5) -> (20,40,60,80,100)
     if value <= 20:
         cod = 0
     elif value <= 40:
@@ -344,7 +322,6 @@ def translateStateToIndex(state):
     cod_avble_central = state[1]
     cod_avble_bw = state[2]
     index = cod_avble_edge * avble_central_size * avble_bw_size + cod_avble_central * avble_bw_size + cod_avble_bw
-    # index = cod_avble_edge*avble_central_size + cod_avble_central
     return int(index)
 
 
@@ -358,17 +335,12 @@ def get_state(substrate):
 
 def func_arrival(c, evt):  # NSL arrival
     s = c.simulation
-    # print("**/",evt.extra["arrival_rate"])
+    logging.debug("**/", evt.extra["arrival_rate"])
     arrival_rate = evt.extra["arrival_rate"]
     service_type = evt.extra["service_type"]
     inter_arrival_time = get_interarrival_time(arrival_rate)
     s.add_event(s.create_event(tipo="arrival", inicio=s.horario + inter_arrival_time,
                                extra={"service_type": service_type, "arrival_rate": arrival_rate}, f=func_arrival))
-
-
-# def func_criar(c,evt): #NSL instantiation
-#     s = c.simulation
-#     req = evt.extra
 
 contador_termination = 0
 
@@ -385,14 +357,14 @@ contador_windows = 0
 
 
 def func_twindow(c, evt):
-    # la venta de tiempo ha expirado. Las nslrs recolectadas hasta ahora seran analizadas para su admision
+    # the time sale has expired. The nslrs collected so far will be analyzed for admission.
     global contador_windows
     sim = c.simulation
     contador_windows += 1
 
-    sim.granted_req_list = sim.window_req_list  # descomentar para NR y AAR
+    sim.granted_req_list = sim.window_req_list  # uncomment for NR and AAR
 
-    # la lista se envia al modulo de Resource Allocation
+    # the list is sent to the Resource Allocation module
     step_profit, step_node_profit, step_link_profit, step_embb_profit, step_urllc_profit, step_miot_profit, step_total_utl, step_node_utl, step_links_bw_utl, step_edge_cpu_utl, step_central_cpu_utl = resource_allocation(
         c)
     c.total_profit += step_profit
@@ -502,14 +474,14 @@ def main():
 
         for i in range(repetitions):
 
-            agente = qagent.Qagent(0.9, 0.9, 0.9, 80, n_states,
-                                   n_actions)  # alpha, gamma, epsilon, episodes, n_states, n_actions
+            # alpha, gamma, epsilon, episodes, n_states, n_actions
+            agente = qagent.Qagent(0.9, 0.9, 0.9, 80, n_states, n_actions)
 
             for j in range(agente.episodes):
                 print("\n", "episode:", j, "\n")
-                controller = None
                 controller = Controlador()
-                controller.substrate = copy.deepcopy(substrate_graphs.get_graph("64node_BA"))  # get substrate
+                # get substrate
+                controller.substrate = copy.deepcopy(substrate_graphs.get_graph("64node_BA"))
                 edge_initial = controller.substrate.graph["edge_cpu"]
                 centralized_initial = controller.substrate.graph["centralized_cpu"]
                 bw_initial = controller.substrate.graph["bw"]
@@ -543,11 +515,10 @@ def main():
                 urllc_utl_rep[j].append(controller.urllc_utl)
                 miot_utl_rep[j].append(controller.miot_utl)
 
-            # bot.sendMessage("Repetition " + str(i) + " finishes!")
-            f = open("nr_" + str(m) + "_64BA_3de5sta_7act_80epi.txt", "w+")
-            # f = open("aar_"+str(m)+"_64BA_3de5sta_7act_80epi.txt","w+")
-            # f = open("nr_"+str(m)+"_16BA_3de5sta_7act_80epi.txt","w+")
-            # f = open("aar_"+str(m)+"_abilene.txt","w+")
+            logging.info("*******Repetition " + str(i) + " finishes!*******")
+            my_path = os.path.abspath(__file__)
+            f = open(my_path + "/outputs/" + "nr_" + str(m) + "_64BA_3de5sta_7act_80epi.txt", "w+")
+
             f.write("Repetition: " + str(i) + "\n")
 
             f.write("**Reward:\n")
@@ -596,28 +567,9 @@ def main():
 
 
 if __name__ == '__main__':
-    # bot.sendMessage("Simulation starts!")
+    logging.info("*******Simulation starts!*******")
     start = time.time()
     main()
     end = time.time()
-    # bot.sendMessage("Simulation finishes!")
-    # bot.sendMessage("total time: " + str(end-start))
-
-# print("len",len(controller.simulation.window_req_list))    
-# print("total profit: ", controller.total_profit)
-# print("node_profit: ", controller.node_profit)
-# print("link_profit: ", controller.link_profit)
-# print("embb_profit",controller.embb_profit)
-# print("urllc_profit",controller.urllc_profit)
-# print("miot_profit",controller.miot_profit)
-# print("total_reqs: ", controller.simulation.total_reqs)
-# print("attended_reqs: ", controller.simulation.attended_reqs)
-# print("accepted_reqs: ", controller.simulation.accepted_reqs)
-# print("acceptance_rate: ", controller.simulation.accepted_reqs/controller.simulation.total_reqs)
-# print("accepted_embb_reqs: ", controller.simulation.embb_accepted_reqs)
-# print("accepted_urllc_reqs: ", controller.simulation.urllc_accepted_reqs)
-# print("accepted_miot_reqs: ", controller.simulation.miot_accepted_reqs)
-# print("total_node_utl: ", controller.total_node_utl)
-# print("edge_node_utl: ", controller.edge_node_utl)
-# print("central_node_utl: ", controller.central_node_utl)
-# print("contador_termination:", contador_termination)
+    logging.info("*******Simulation finishes!*******")
+    logging.info("*******total time: " + str(end - start) + "*******")

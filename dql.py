@@ -1,13 +1,12 @@
+import collections as cns
+
 import numpy as np
 import tensorflow as tf
-import collections as cns
 
 
 def dense(x, weights, bias, activation=tf.identity, **activation_kwargs):
     """Dense layer."""
-    # x = x.astype("float32")
-    # print("##x",x)
-    # print("##weights",weights)
+
     z = tf.matmul(x, weights) + bias
     return activation(z, **activation_kwargs)
 
@@ -112,14 +111,14 @@ class Agent(object):
     def __init__(self,
                  state_space_size,
                  action_space_size,
-                 target_update_freq=100,  # 1000, #cada n steps se actualiza la target network
+                 target_update_freq=100,  # 1000, # every n steps the target network is updated
                  discount=0.99,
                  batch_size=32,
                  max_explore=1,
                  min_explore=0.05,
                  anneal_rate=(1 / 5000),  # 100000),
                  replay_memory_size=100000,
-                 replay_start_size=500):  # 500): #10000): #despues de n steps comienza el replay
+                 replay_start_size=500):  # 500): #10000): # after n steps the replay starts
         """Set parameters, initialize network."""
         self.action_space_size = action_space_size
 
@@ -172,14 +171,13 @@ class Agent(object):
                 }
 
                 self.memory.add(experience)
-                # print("**memory size:",self.memory.__len__())
-            # else:
-            # print("&& last_state",last_state)
 
-            if self.steps > self.replay_start_size:  # para acumular cierta cantidad de experiences antes de comenzar el entrenamiento
+            # to accumulate a certain number of experiences before starting the training
+            if self.steps > self.replay_start_size:
                 self.train_network()
 
-                if self.steps % self.target_update_freq == 0:  # el clon de la red se realiza cada cierta cant de steps
+                # the network clone is performed every certain number of steps
+                if self.steps % self.target_update_freq == 0:
                     self.update_target_network()
 
         self.last_state = state
@@ -189,15 +187,16 @@ class Agent(object):
 
     def policy(self, state, training):
         """Epsilon-greedy policy for training, greedy policy otherwise."""
-        explore_prob = self.max_explore - (self.steps * self.anneal_rate)  # probabilidad de exploracion decreciente
+        # decreasing scan probability
+        explore_prob = self.max_explore - (self.steps * self.anneal_rate)
         explore = max(explore_prob, self.min_explore) > np.random.rand()
 
-        if training and explore:  # hacer exploracion
+        if training and explore:  # do exploration
             action = np.random.randint(self.action_space_size)
-        else:  # hacer explotacion
+        else:  # do exploration
             inputs = np.expand_dims(state, 0)
-            qvalues = self.online_network.model(inputs)  # online or evalation network predicts q-values
-            # print("***##qvalues",qvalues)
+            # online or evalation network predicts q-values
+            qvalues = self.online_network.model(inputs)
             action = np.squeeze(np.argmax(qvalues, axis=-1))
 
         return action
@@ -211,7 +210,7 @@ class Agent(object):
     def train_network(self):
         """Update online network weights."""
         batch = self.memory.sample(self.batch_size)
-        inputs = np.array([b["state"] for b in batch])  #####
+        inputs = np.array([b["state"] for b in batch])
         actions = np.array([b["action"] for b in batch])
         rewards = np.array([b["reward"] for b in batch])
         next_inputs = np.array([b["next_state"] for b in batch])

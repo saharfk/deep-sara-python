@@ -1,13 +1,12 @@
-import numpy
-import random
 import copy
+import logging
+import random
+
+import numpy
 
 cpu_embb = (5, 5)  # cpu units range for eMBB
 cpu_urllc = (5, 5)
 cpu_miot = (5, 5)
-# bw_embb = (1,1) #Mbps
-# bw_urllc = (.50,.50) #Mbps
-# bw_miot = (.1,.3)
 
 bw_embb = (.5, .5)  # Mbps
 bw_urllc = (.5, .5)  # Mbps
@@ -20,17 +19,12 @@ nsl_graph_eMBB = {
         {"id": 1, "function": "AMF", "type": 0, "backup": 0},
         {"id": 2, "function": "SMF", "type": 0, "backup": 0},
         {"id": 3, "function": "UPF", "type": 1, "backup": 0}
-        # {"id":4,"function":"UPF","type":1,"backup":0}
-        # {"id":5,"function":"UPF","type":1,"backup":0},
-        # {"id":6,"function":"UPF","type":1,"backup":0}
+
     ],
     "vlinks": [
         {"source": 0, "target": 2},
         {"source": 1, "target": 2},
         {"source": 2, "target": 3}
-        # {"source":2,"target":4}
-        # {"source":3,"target":5},
-        # {"source":4,"target":6}
 
     ]
 }
@@ -45,8 +39,7 @@ nsl_graph_URLLC = {
         {"id": 6, "function": "UPF", "type": 1, "backup": 2},
         {"id": 7, "function": "UPF", "type": 1, "backup": 3},
         {"id": 8, "function": "UPF", "type": 1, "backup": 3},
-        {"id": 9, "function": "UPF", "type": 1, "backup": 3}  # ,
-        # {"id":10,"function":"UPF","type":2,"backup":3}
+        {"id": 9, "function": "UPF", "type": 1, "backup": 3}
     ],
     "vlinks": [
         {"source": 0, "target": 2},
@@ -95,35 +88,29 @@ class NSLR():
 
 def get_operation_time(mean_operation_time):
     value = numpy.random.exponential(mean_operation_time, 1)
-    if round(value[0]) == 0:  # and round(value[0]) <= 180: #60: #para evitar duraciones de 0 y mayores a un valor
+    # and round(value[0]) <= 180: #60:
+    # to avoid durations of 0 and greater than a value
+    if round(value[0]) == 0:
         value[0] = 1
     return round(value[0])
-    # return 400
 
 
 def add_resources(nsl_graph, service_type):
     cpu = 0
-    # print("**",service_type)
+    logging.debug("**", service_type)
     if service_type == "embb":
-        # print("entro")
         cpu = cpu_embb
-        # strg = str_embb
         bw = bw_embb
     elif service_type == "urllc":
-        # print("entro urllc")
         cpu = cpu_urllc
-        # strg = str_urllc
         bw = bw_urllc
     elif service_type == "miot":
         cpu = cpu_miot
-        # strg = str_miot
         bw = bw_miot
 
     for v in nsl_graph["vnfs"]:
         v["cpu"] = random.randint(cpu[0], cpu[1])
-        # v["str"] = random.randint(strg[0],strg[1])
     for l in nsl_graph["vlinks"]:
-        # l["bw"] = random.randint(bw[0],bw[1])
         l["bw"] = random.uniform(bw[0], bw[1])
 
     return nsl_graph

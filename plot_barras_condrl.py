@@ -1,11 +1,11 @@
-import matplotlib
+import os
+from datetime import datetime
 
-matplotlib.use("agg")
+import matplotlib
 import matplotlib.pyplot as plt
-import csv
-import math
 import numpy as np
 
+matplotlib.use("agg")
 patterns = ["/", "\\", "|", "-", "+", "x", "o", "O", ".", "*"]
 
 pos = [0, 2, 4, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17]
@@ -163,7 +163,11 @@ ax.set_xlabel('Arrival Rate')
 plt.xticks([r for r in range(len(profit_aar))], arrival_rates)
 plt.legend(fontsize=14, loc='lower right', shadow=True, fancybox=True)
 # plt.legend(fontsize = 14,loc='upper center', bbox_to_anchor=(0.5, 0.15), shadow=True, ncol=3)
-plt.savefig("rl_ArrivalRatevsMeanProfit_" + topology + ".eps", bbox_inches='tight')
+my_path = os.path.abspath(__file__)
+today = datetime.today().strftime('%Y-%m-%d')
+
+plt.savefig(my_path + "/outputs/" + "rl_ArrivalRatevsMeanProfit_" + topology + "_" + today + ".eps",
+            bbox_inches='tight')
 
 fig, ax = plt.subplots()
 rects1 = ax.bar(pos - barWidth - 0.055, acpt_rate_aar, barWidth, label='AAR', yerr=err_acptrate_aar, capsize=2,
@@ -176,7 +180,11 @@ ax.set_xlabel('Arrival Rate')
 # # general layout
 plt.xticks([r for r in range(len(acpt_rate_aar))], arrival_rates)
 plt.legend(fontsize=14, fancybox=True, shadow=True)
-plt.savefig("rl_ArrivalRatevsMeanAcceptanceRatio_" + topology + ".eps", bbox_inches='tight')
+my_path = os.path.abspath(__file__)
+today = datetime.today().strftime('%Y-%m-%d')
+
+plt.savefig(my_path + "/outputs/" + "rl_ArrivalRatevsMeanAcceptanceRatio_" + topology + "_" + today + ".eps",
+            bbox_inches='tight')
 ###########################################################################################################################
 
 #################################### 4 barras (con drl) ###################################################################
@@ -196,7 +204,10 @@ ax.set_xlabel('Arrival Rate')
 plt.xticks([r for r in range(len(profit_aar))], arrival_rates)
 plt.legend(fontsize=14, loc='lower right', shadow=True, fancybox=True)
 # plt.legend(fontsize = 14,loc='upper center', bbox_to_anchor=(0.5, 0.15), shadow=True, ncol=3)
-plt.savefig("drl_ArrivalRatevsMeanProfit_" + topology + ".eps", bbox_inches='tight')
+my_path = os.path.abspath(__file__)
+today = datetime.today().strftime('%Y-%m-%d')
+plt.savefig(my_path + "/outputs/" + "drl_ArrivalRatevsMeanProfit_" + topology + "_" + today + ".eps",
+            bbox_inches='tight')
 
 fig, ax = plt.subplots()
 rects1 = ax.bar(pos - barWidth * 1.5 - 0.075, acpt_rate_aar, barWidth, label='AAR', yerr=err_acptrate_aar, capsize=2,
@@ -212,5 +223,7 @@ ax.set_xlabel('Arrival Rate')
 # # general layout
 plt.xticks([r for r in range(len(acpt_rate_aar))], arrival_rates)
 plt.legend(fontsize=14, fancybox=True, shadow=True)
-plt.savefig("drl_ArrivalRatevsMeanAcceptanceRatio_" + topology + ".eps", bbox_inches='tight')
+
+plt.savefig(my_path + "/outputs/" + "drl_ArrivalRatevsMeanAcceptanceRatio_" + topology + "_" + today + ".eps",
+            bbox_inches='tight')
 ###########################################################################################################################
